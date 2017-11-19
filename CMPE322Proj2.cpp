@@ -79,8 +79,10 @@ std::pair<int, int> run_process(int instruction, const char *filename) {
 			return std::make_pair(current_instr, runtime_total);
 		}
 	}
-
 	fclose(f);
+
+	//In case file is faulty
+	return std::make_pair(-1, 0);
 }
 
 int main(int argc, const char * argv[]) {
@@ -108,6 +110,8 @@ int main(int argc, const char * argv[]) {
 
 	//Main scheduling logic
 	while(!incoming_queue.empty() || !task_queue.empty()) {
+		bool enqueueRunningProcess = false;
+		Task incompleteProcess = Task(0, "", ""); //Placeholder
 		if (!task_queue.empty()) {
 			Task current_task = task_queue.front();
 			task_queue.pop_front();
@@ -115,8 +119,9 @@ int main(int argc, const char * argv[]) {
 			if (current_task_status.first == -1) {
 				//Finished execution, do nothing
 			} else {
-				//Add incomplete process to task_queue
-				task_queue.push_back(Task(current_task_status.first, current_task.m_process_name, current_task.m_process_filename));
+				//Set boolean so that we enqueue running process after adding incoming processes
+				enqueueRunningProcess = true;
+				incompleteProcess = Task(current_task_status.first, current_task.m_process_name, current_task.m_process_filename);
 			}
 			time += current_task_status.second;
 		} else {
@@ -127,6 +132,10 @@ int main(int argc, const char * argv[]) {
 			Incoming new_task = incoming_queue.front();
 			incoming_queue.pop_front();
 			task_queue.push_back(Task(0, new_task.m_process_name, new_task.m_process_filename));
+		}
+		if (enqueueRunningProcess) {
+				//Add incomplete process to task_queue
+				task_queue.push_back(incompleteProcess);
 		}
 		print_time(time);
 		print_queue(task_queue);
